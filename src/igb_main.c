@@ -37,7 +37,7 @@
 #define DRV_DEBUG
 #endif
 #define DRV_HW_PERF
-#define VERSION_SUFFIX
+#define VERSION_SUFFIX "-custom"
 
 #define DRV_VERSION	"5.5.2" VERSION_SUFFIX DRV_DEBUG DRV_HW_PERF
 #define DRV_SUMMARY	"Intel(R) Gigabit Ethernet Linux Driver"
