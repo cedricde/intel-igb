@@ -678,6 +678,14 @@ struct e1000_phy_info {
 	bool reset_disable;
 	bool speed_downgraded;
 	bool autoneg_wait_to_complete;
+
+	bool local_master;
+	bool pair_ab_swapped;
+	bool pair_cd_swapped;
+	enum e1000_rev_polarity pair_a_polarity;
+	enum e1000_rev_polarity pair_b_polarity;
+	enum e1000_rev_polarity pair_c_polarity;
+	enum e1000_rev_polarity pair_d_polarity;
 };
 
 struct e1000_nvm_info {

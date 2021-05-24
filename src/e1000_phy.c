@@ -2612,6 +2612,42 @@ s32 e1000_get_phy_info_m88(struct e1000_hw *hw)
 	if (phy_data & SR_1000T_LP_FD_CAPS)
 		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Full;
 
+	phy->local_master = !!(phy_data & SR_1000T_MS_CONFIG_RES);
+
+	switch (phy->type) {
+	case e1000_phy_i210:
+		ret_val = phy->ops.read_reg(hw, I210_PHY_PAIR_SWAP_POLARITY, &phy_data);
+		if (ret_val)
+			return ret_val;
+
+		if (phy_data & I210_PHY_PSP_REGISTER_VALID) {
+			phy->pair_ab_swapped = !!(phy_data & I210_PHY_PSP_PAIRS_AB_SWAPPED);
+			phy->pair_cd_swapped = !!(phy_data & I210_PHY_PSP_PAIRS_CD_SWAPPED);
+			phy->pair_a_polarity = ((phy_data & I210_PHY_PSP_PAIR_A_REV_POLARITY)
+						? e1000_rev_polarity_reversed
+						: e1000_rev_polarity_normal);
+			phy->pair_b_polarity = ((phy_data & I210_PHY_PSP_PAIR_B_REV_POLARITY)
+						? e1000_rev_polarity_reversed
+						: e1000_rev_polarity_normal);
+			phy->pair_c_polarity = ((phy_data & I210_PHY_PSP_PAIR_C_REV_POLARITY)
+						? e1000_rev_polarity_reversed
+						: e1000_rev_polarity_normal);
+			phy->pair_d_polarity = ((phy_data & I210_PHY_PSP_PAIR_D_REV_POLARITY)
+						? e1000_rev_polarity_reversed
+						: e1000_rev_polarity_normal);
+		} else {
+			phy->pair_ab_swapped = I210_PHY_PSP_FIELD_UNDEFINED;
+			phy->pair_cd_swapped = I210_PHY_PSP_FIELD_UNDEFINED;
+			phy->pair_a_polarity = I210_PHY_PSP_FIELD_UNDEFINED;
+			phy->pair_b_polarity = I210_PHY_PSP_FIELD_UNDEFINED;
+			phy->pair_c_polarity = I210_PHY_PSP_FIELD_UNDEFINED;
+			phy->pair_d_polarity = I210_PHY_PSP_FIELD_UNDEFINED;
+		}
+		break;
+	default:
+		break;
+	}
+
 	return ret_val;
 }
 
@@ -3199,6 +3235,26 @@ s32 e1000_get_phy_info_82577(struct e1000_hw *hw)
 		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Half;
 	if (data & SR_1000T_LP_FD_CAPS)
 		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Full;
+
+	phy->local_master = !!(data & SR_1000T_MS_CONFIG_RES);
+
+	ret_val = phy->ops.read_reg(hw, I82577_PHY_DIAG_STATUS, &data);
+	if (ret_val)
+		return ret_val;
+
+	phy->pair_cd_swapped = !!(data & I82577_DSTATUS_PAIRS_CD_SWAPPED);
+	phy->pair_a_polarity = ((data & I82577_DSTATUS_PAIR_A_REV_POLARITY)
+				? e1000_rev_polarity_reversed
+				: e1000_rev_polarity_normal);
+	phy->pair_b_polarity = ((data & I82577_DSTATUS_PAIR_B_REV_POLARITY)
+				? e1000_rev_polarity_reversed
+				: e1000_rev_polarity_normal);
+	phy->pair_c_polarity = ((data & I82577_DSTATUS_PAIR_C_REV_POLARITY)
+				? e1000_rev_polarity_reversed
+				: e1000_rev_polarity_normal);
+	phy->pair_d_polarity = ((data & I82577_DSTATUS_PAIR_D_REV_POLARITY)
+				? e1000_rev_polarity_reversed
+				: e1000_rev_polarity_normal);
 
 	return E1000_SUCCESS;
 }

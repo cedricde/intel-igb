@@ -6767,6 +6767,7 @@ _kc_devlink_port_attrs_set(struct devlink_port *devlink_port,
 #define HAVE_NDO_XDP_XMIT_BULK_AND_FLAGS
 #define NO_NDO_XDP_FLUSH
 #define HAVE_AF_XDP_SUPPORT
+#define HAVE_ETHTOOL_OPS_GET_PHY_STATS
 #endif /* 4.18.0 */
 
 /*****************************************************************************/

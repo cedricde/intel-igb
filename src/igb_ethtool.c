@@ -129,6 +129,21 @@ static const char igb_gstrings_test[][ETH_GSTRING_LEN] = {
 #define IGB_TEST_LEN (sizeof(igb_gstrings_test) / ETH_GSTRING_LEN)
 #endif /* ETHTOOL_TEST */
 
+#ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
+static const char igb_gstrings_phy_stats[][ETH_GSTRING_LEN] = {
+	"Local PHY is master",
+	"Pairs A and B swapped",
+	"Pairs C and D swapped",
+	"Inverted polarity (10BASE-T)",
+	"Pair A polarity inverted (GbE)",
+	"Pair B polarity inverted (GbE)",
+	"Pair C polarity inverted (GbE)",
+	"Pair D polarity inverted (GbE)",
+	"Cable length (m)",
+};
+#define IGB_PHY_STATS_LEN ARRAY_SIZE(igb_gstrings_phy_stats)
+#endif
+
 #ifdef HAVE_ETHTOOL_CONVERT_U32_AND_LINK_MODE
 static int igb_get_link_ksettings(struct net_device *netdev,
 				  struct ethtool_link_ksettings *cmd)
@@ -2483,11 +2498,26 @@ static int igb_nway_reset(struct net_device *netdev)
 #ifdef HAVE_ETHTOOL_GET_SSET_COUNT
 static int igb_get_sset_count(struct net_device *netdev, int sset)
 {
+	struct igb_adapter *adapter = netdev_priv(netdev);
+	struct e1000_phy_info *phy = &adapter->phy_info;
+
 	switch (sset) {
 	case ETH_SS_STATS:
 		return IGB_STATS_LEN;
 	case ETH_SS_TEST:
 		return IGB_TEST_LEN;
+
+#ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
+	case ETH_SS_PHY_STATS:
+		switch (phy->type) {
+		case e1000_phy_82580:
+		case e1000_phy_i210:
+			return IGB_PHY_STATS_LEN;
+		default:
+			return -EOPNOTSUPP;
+		}
+#endif
+
 	default:
 		return -ENOTSUPP;
 	}
@@ -2541,6 +2571,36 @@ static void igb_get_ethtool_stats(struct net_device *netdev,
 	}
 }
 
+#ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
+static void igb_get_ethtool_phy_stats(struct net_device *netdev,
+				      struct ethtool_stats *stats, u64 *data)
+{
+	struct igb_adapter *adapter = netdev_priv(netdev);
+	struct e1000_phy_info *phy = &adapter->phy_info;
+
+	switch (min((u32)IGB_PHY_STATS_LEN, stats->n_stats)) {
+	case 9:
+		data[8] = phy->cable_length;
+	case 8:
+		data[7] = phy->pair_d_polarity;
+	case 7:
+		data[6] = phy->pair_c_polarity;
+	case 6:
+		data[5] = phy->pair_b_polarity;
+	case 5:
+		data[4] = phy->pair_a_polarity;
+	case 4:
+		data[3] = phy->cable_polarity;
+	case 3:
+		data[2] = (phy->pair_cd_swapped ? 1 : 0);
+	case 2:
+		data[1] = (phy->pair_ab_swapped ? 1 : 0);
+	case 1:
+		data[0] = (phy->local_master ? 1 : 0);
+	}
+}
+#endif /* HAVE_ETHTOOL_OPS_GET_PHY_STATS */
+
 static void igb_get_strings(struct net_device *netdev, u32 stringset, u8 *data)
 {
 	struct igb_adapter *adapter = netdev_priv(netdev);
@@ -2585,6 +2645,13 @@ static void igb_get_strings(struct net_device *netdev, u32 stringset, u8 *data)
 		}
 /*		BUG_ON(p - data != IGB_STATS_LEN * ETH_GSTRING_LEN); */
 		break;
+
+#ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
+	case ETH_SS_PHY_STATS:
+		memcpy(data, igb_gstrings_phy_stats,
+		       sizeof(igb_gstrings_phy_stats));
+		break;
+#endif
 	}
 }
 
@@ -3613,6 +3680,9 @@ static const struct ethtool_ops igb_ethtool_ops = {
 #ifdef ETHTOOL_GRXFH
 	.get_rxnfc		= igb_get_rxnfc,
 	.set_rxnfc		= igb_set_rxnfc,
+#endif
+#ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
+	.get_ethtool_phy_stats	= igb_get_ethtool_phy_stats,
 #endif
 };
 
