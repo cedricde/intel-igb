@@ -2577,6 +2577,41 @@ s32 e1000_get_phy_info_m88(struct e1000_hw *hw)
 		phy->remote_rx = e1000_1000t_rx_status_undefined;
 	}
 
+	ret_val = phy->ops.read_reg(hw, PHY_LP_ABILITY, &phy_data);
+	if (ret_val)
+		return ret_val;
+
+	phy->autoneg_lp_advertised = 0;
+
+	if (phy_data & NWAY_LPAR_10T_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_10baseT_Half;
+	if (phy_data & NWAY_LPAR_10T_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_10baseT_Full;
+	if (phy_data & NWAY_LPAR_100TX_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_100baseT_Half;
+	if (phy_data & NWAY_LPAR_100TX_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_100baseT_Full;
+	if (phy_data & NWAY_LPAR_PAUSE)
+		phy->autoneg_lp_advertised |= ADVERTISED_Pause;
+	if (phy_data & NWAY_LPAR_ASM_DIR)
+		phy->autoneg_lp_advertised |= ADVERTISED_Asym_Pause;
+
+	ret_val = phy->ops.read_reg(hw, PHY_AUTONEG_EXP, &phy_data);
+	if (ret_val)
+		return ret_val;
+
+	if (phy_data & NWAY_ER_LP_NWAY_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_Autoneg;
+
+	ret_val = phy->ops.read_reg(hw, PHY_1000T_STATUS, &phy_data);
+	if (ret_val)
+		return ret_val;
+
+	if (phy_data & SR_1000T_LP_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Half;
+	if (phy_data & SR_1000T_LP_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Full;
+
 	return ret_val;
 }
 
@@ -3129,6 +3164,41 @@ s32 e1000_get_phy_info_82577(struct e1000_hw *hw)
 		phy->local_rx = e1000_1000t_rx_status_undefined;
 		phy->remote_rx = e1000_1000t_rx_status_undefined;
 	}
+
+	ret_val = phy->ops.read_reg(hw, PHY_LP_ABILITY, &data);
+	if (ret_val)
+		return ret_val;
+
+	phy->autoneg_lp_advertised = 0;
+
+	if (data & NWAY_LPAR_10T_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_10baseT_Half;
+	if (data & NWAY_LPAR_10T_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_10baseT_Full;
+	if (data & NWAY_LPAR_100TX_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_100baseT_Half;
+	if (data & NWAY_LPAR_100TX_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_100baseT_Full;
+	if (data & NWAY_LPAR_PAUSE)
+		phy->autoneg_lp_advertised |= ADVERTISED_Pause;
+	if (data & NWAY_LPAR_ASM_DIR)
+		phy->autoneg_lp_advertised |= ADVERTISED_Asym_Pause;
+
+	ret_val = phy->ops.read_reg(hw, PHY_AUTONEG_EXP, &data);
+	if (ret_val)
+		return ret_val;
+
+	if (data & NWAY_ER_LP_NWAY_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_Autoneg;
+
+	ret_val = phy->ops.read_reg(hw, PHY_1000T_STATUS, &data);
+	if (ret_val)
+		return ret_val;
+
+	if (data & SR_1000T_LP_HD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Half;
+	if (data & SR_1000T_LP_FD_CAPS)
+		phy->autoneg_lp_advertised |= ADVERTISED_1000baseT_Full;
 
 	return E1000_SUCCESS;
 }

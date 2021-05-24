@@ -3166,6 +3166,10 @@ static inline unsigned long dev_trans_start(struct net_device *dev)
 #define HAVE_INCLUDE_LINUX_MDIO_H
 #endif
 #include <linux/mdio.h>
+
+#ifndef HAVE_ETHTOOL_CMD_LP_ADVERTISING
+#define HAVE_ETHTOOL_CMD_LP_ADVERTISING
+#endif
 #endif /* < 2.6.31 */
 
 /*****************************************************************************/
@@ -6402,6 +6406,7 @@ struct _kc_bpf_prog {
  * @link_modes: supported and advertising, single item arrays
  * @link_modes.supported: bitmask of supported link speeds
  * @link_modes.advertising: bitmask of currently advertised speeds
+ * @link_modes.lp_advertising: bitmask of partner advertised speeds
  * @base: base link details
  * @base.speed: current link speed
  * @base.port: current port type
@@ -6425,6 +6430,7 @@ struct ethtool_link_ksettings {
 	struct {
 		unsigned long supported[ETHTOOL_LINK_MASK_SIZE];
 		unsigned long advertising[ETHTOOL_LINK_MASK_SIZE];
+		unsigned long lp_advertising[ETHTOOL_LINK_MASK_SIZE];
 	} link_modes;
 };
 
