@@ -2503,7 +2503,7 @@ static int igb_nway_reset(struct net_device *netdev)
 static int igb_get_sset_count(struct net_device *netdev, int sset)
 {
 	struct igb_adapter *adapter = netdev_priv(netdev);
-	struct e1000_phy_info *phy = &adapter->phy_info;
+	struct e1000_hw *hw = &adapter->hw;
 
 	switch (sset) {
 	case ETH_SS_STATS:
@@ -2513,7 +2513,7 @@ static int igb_get_sset_count(struct net_device *netdev, int sset)
 
 #ifdef HAVE_ETHTOOL_OPS_GET_PHY_STATS
 	case ETH_SS_PHY_STATS:
-		switch (phy->type) {
+		switch (hw->phy.type) {
 		case e1000_phy_82580:
 		case e1000_phy_i210:
 			return IGB_PHY_STATS_LEN;
@@ -2580,7 +2580,8 @@ static void igb_get_ethtool_phy_stats(struct net_device *netdev,
 				      struct ethtool_stats *stats, u64 *data)
 {
 	struct igb_adapter *adapter = netdev_priv(netdev);
-	struct e1000_phy_info *phy = &adapter->phy_info;
+	struct e1000_hw *hw = &adapter->hw;
+	struct e1000_phy_info *phy = &hw->phy;
 
 	if (stats->n_stats > 8)
 		data[8] = phy->cable_length;
