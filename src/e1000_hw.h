@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright(c) 2007 - 2021 Intel Corporation. */
+/* Copyright(c) 2007 - 2022 Intel Corporation. */
 
 #ifndef _E1000_HW_H_
 #define _E1000_HW_H_
@@ -168,8 +168,8 @@ enum e1000_fc_mode {
 
 enum e1000_ms_type {
 	e1000_ms_hw_default = 0,
-	e1000_ms_force_master,
-	e1000_ms_force_slave,
+	e1000_ms_force_primary,
+	e1000_ms_force_secondary,
 	e1000_ms_auto
 };
 

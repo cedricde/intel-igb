@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 2007 - 2021 Intel Corporation. */
+/* Copyright(c) 2007 - 2022 Intel Corporation. */
 
 /*
  * 82575EB Gigabit Network Connection
@@ -1361,9 +1361,9 @@ static s32 e1000_reset_hw_82575(struct e1000_hw *hw)
 	 * Prevent the PCI-E bus from sticking if there is no TLP connection
 	 * on the last TLP read/write transaction when MAC is reset.
 	 */
-	ret_val = e1000_disable_pcie_master_generic(hw);
+	ret_val = e1000_disable_pcie_primary_generic(hw);
 	if (ret_val)
-		DEBUGOUT("PCI-E Master disable polling has failed.\n");
+		DEBUGOUT("PCI-E Primary disable polling has failed.\n");
 
 	/* set the completion timeout for interface */
 	ret_val = e1000_set_pcie_completion_timeout(hw);
@@ -1588,7 +1588,7 @@ static s32 e1000_setup_serdes_link_82575(struct e1000_hw *hw)
 	case E1000_CTRL_EXT_LINK_MODE_1000BASE_KX:
 		/* disable PCS autoneg and support parallel detect only */
 		pcs_autoneg = false;
-		/* Fall through */
+		fallthrough;
 	default:
 		if (hw->mac.type == e1000_82575 ||
 		    hw->mac.type == e1000_82576) {
@@ -1714,7 +1714,7 @@ static s32 e1000_get_media_type_82575(struct e1000_hw *hw)
 			dev_spec->sgmii_active = true;
 			break;
 		}
-		/* Fall through */
+		fallthrough;
 	case E1000_CTRL_EXT_LINK_MODE_PCIE_SERDES:
 		/* read media type from SFP EEPROM */
 		ret_val = e1000_set_sfp_media_type_82575(hw);
@@ -2290,9 +2290,9 @@ static s32 e1000_reset_hw_82580(struct e1000_hw *hw)
 	 * Prevent the PCI-E bus from sticking if there is no TLP connection
 	 * on the last TLP read/write transaction when MAC is reset.
 	 */
-	ret_val = e1000_disable_pcie_master_generic(hw);
+	ret_val = e1000_disable_pcie_primary_generic(hw);
 	if (ret_val)
-		DEBUGOUT("PCI-E Master disable polling has failed.\n");
+		DEBUGOUT("PCI-E Primary disable polling has failed.\n");
 
 	DEBUGOUT("Masking off all interrupts\n");
 	E1000_WRITE_REG(hw, E1000_IMC, 0xffffffff);
