@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 2007 - 2022 Intel Corporation. */
+/* SPDX-License-Identifier: @SPDX@ */
+/* Copyright(c) 2007 - 2023 Intel Corporation. */
 
 #include "e1000_mbx.h"
 
@@ -507,7 +507,11 @@ s32 e1000_init_mbx_params_pf(struct e1000_hw *hw)
 		mbx->stats.reqs = 0;
 		mbx->stats.acks = 0;
 		mbx->stats.rsts = 0;
+#ifdef LINUX_VERSION_CODE
 		fallthrough;
+#else
+		/* Fall through */
+#endif /* LINUX_VERSION_CODE */
 	default:
 		return E1000_SUCCESS;
 	}

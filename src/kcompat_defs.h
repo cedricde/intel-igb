@@ -1,5 +1,5 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-/* Copyright(c) 2007 - 2022 Intel Corporation. */
+/* SPDX-License-Identifier: @SPDX@ */
+/* Copyright(c) 2007 - 2023 Intel Corporation. */
 
 #ifndef _KCOMPAT_DEFS_H_
 #define _KCOMPAT_DEFS_H_
@@ -32,6 +32,10 @@
 #include "kcompat_ubuntu_defs.h"
 #elif RHEL_RELEASE_CODE
 #include "kcompat_rhel_defs.h"
+#elif defined(UEK_RELEASE_NUMBER)
+#include "kcompat_oracle_defs.h"
 #endif
+
+#include "kcompat_generated_defs.h"
 
 #endif /* _KCOMPAT_DEFS_H_ */

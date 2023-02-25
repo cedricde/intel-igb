@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-2.0
-/* Copyright(c) 2007 - 2022 Intel Corporation. */
+/* SPDX-License-Identifier: @SPDX@ */
+/* Copyright(c) 2007 - 2023 Intel Corporation. */
 
 #include "e1000_api.h"
 
@@ -892,7 +892,11 @@ void e1000_get_fw_version(struct e1000_hw *hw, struct e1000_fw_version *fw_vers)
 			e1000_read_invm_version(hw, fw_vers);
 			return;
 		}
+#ifdef LINUX_VERSION_CODE
 		fallthrough;
+#else
+		/* Fall through */
+#endif /* LINUX_VERSION_CODE */
 	case e1000_i350:
 		hw->nvm.ops.read(hw, NVM_ETRACK_HIWORD, 1, &etrack_test);
 		/* find combo image version */
