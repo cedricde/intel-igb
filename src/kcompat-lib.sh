@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: @SPDX@
 # Copyright(c) 2007 - 2023 Intel Corporation.
 
+
+
+
 # to be sourced
 
 # General shell helpers
@@ -21,38 +24,43 @@ function die() {
 }
 
 # filter out paths that are not files
-# fail if some provided, but all are not files
-# input $@, outut via echo
-# note: `-` for stdin is OK
+# input $@, output via echo;
+# note: pass `-` for stdin
+# note: outputs nothing if all input files are "bad" (eg. not existing), but it
+#	is left for caller to decide if this is an erorr condition;
+# note: whitespaces are considered "bad" as part of filename, it's an error.
 function filter-out-bad-files() {
 	if [[ $# = 1 && "$1" = '-' ]]; then
+		echo -
 		return 0
 	fi
 	if [ $# = 0 ]; then
 		die 10 "no files passed, use '-' when reading from pipe (|)"
 	fi
-	local out=()
+	local any=0 diagmsgs=/dev/stderr re=$'[\t \n]'
+	[ -n "${QUIET_COMPAT-}" ] && diagmsgs=/dev/null
 	for x in "$@"; do
 		if [ -e "$x" ]; then
-			out+=("$x")
+			if [[ "$x" =~ $re ]]; then
+				die 11 "err: filename contains whitespaces: $x."
+			fi
+			echo "$x"
+			any=1
 		else
-			echo >&2 filtering "$x" out
+			echo >&"$diagmsgs" filtering "$x" out
 		fi
 	done
-	if [ ${#out[@]} = 0 ]; then
-		die 11 'empty list of files'
+	if [ $any = 0 ]; then
+		echo >&"$diagmsgs" 'all files (for given query) filtered out'
 	fi
-	echo "${out[@]}"
 }
 
 # Basics of regexp explained, as a reference for mostly-C programmers:
 # (bash) "regexp-$VAR-regexp"  - bash' VARs are placed into "QUOTED" strings
 # /\);?$/       - match end of function declaration, $ is end of string
-# ^[^\/]*       - (heuristic), anything but comment, eg to exclude function docs
+# ^[ \t]*       - (heuristic), anything but comment, eg to exclude function docs
 # /STH/, /END/  - (awk), print all lines sice STH matched, up to END, inclusive
 
-# "Not inside of Comment, at on begining of line", heuristic
-NC='^[^\/]*'
 # "Whitespace only"
 WB='[ \t\n]'
 
@@ -62,7 +70,7 @@ WB='[ \t\n]'
 # We take advantage of current/common linux codebase formatting here.
 #
 # Functions in this section require input file/s passed as args
-# (usualy one, but more could be supplied in case of renames in kernel),
+# (usually one, but more could be supplied in case of renames in kernel),
 # '-' could be used as an (only) file argument to read from stdin/pipe.
 
 # wrapper over find-something-decl() functions below, to avoid repetition
@@ -74,7 +82,14 @@ function find-decl() {
 	end="$2"
 	shift 2
 	files="$(filter-out-bad-files "$@")" || die
-	awk "$what, $end" "$files"
+	if [ -z "$files" ]; then
+		return 0
+	fi
+	# shellcheck disable=SC2086
+	awk "
+		/^$WB*\*/ {next}
+		$what, $end
+	" $files
 }
 
 # yield $1 function declaration (signature), don't pass return type in $1
@@ -82,7 +97,7 @@ function find-decl() {
 function find-fun-decl() {
 	test $# -ge 2
 	local what end
-	what="/$NC$WB*(\(\*)?$1$WB*($|[()])/"
+	what="/$WB*([(]\*)?$1$WB*($|[()])/"
 	end='/\);?$/'
 	shift
 	find-decl "$what" "$end" "$@"
@@ -92,7 +107,7 @@ function find-fun-decl() {
 function find-enum-decl() {
 	test $# -ge 2
 	local what end
-	what="/${NC}enum $1"' \{$/'
+	what="/^$WB*enum $1"' \{$/'
 	end='/\};$/'
 	shift
 	find-decl "$what" "$end" "$@"
@@ -102,7 +117,7 @@ function find-enum-decl() {
 function find-struct-decl() {
 	test $# -ge 2
 	local what end
-	what="/${NC}struct $1"' \{$/'
+	what="/^$WB*struct $1"' \{$/'
 	end='/^\};$/' # that's (^) different from enum-decl
 	shift
 	find-decl "$what" "$end" "$@"
@@ -112,8 +127,20 @@ function find-struct-decl() {
 function find-macro-decl() {
 	test $# -ge 2
 	local what end
-	what="/^#define $1/" # only unindented defines
+	# only unindented defines, only whole-word match
+	what="/^#define $1"'([ \t\(]|$)/'
 	end=1 # only first line (bumping to bigger number does not bring more ;)
+	shift
+	find-decl "$what" "$end" "$@"
+}
+
+# yield first line of $1 typedef definition (simple typedefs only)
+# this probably won't handle typedef struct { \n int foo;\n};
+function find-typedef-decl() {
+	test $# -ge 2
+	local what end
+	what="/^typedef .* $1"';$/'
+	end=1
 	shift
 	find-decl "$what" "$end" "$@"
 }
@@ -130,7 +157,7 @@ function find-macro-decl() {
 #   NAME is the name for what we are looking for;
 #
 #   KIND specifies what kind of declaration/definition we are looking for,
-#      could be: fun, enum, struct, method, macro
+#      could be: fun, enum, struct, method, macro, typedef
 #   for KIND=method, we are looking for function ptr named METHOD in struct
 #     named NAME (two optional args are then necessary (METHOD & of));
 #
@@ -155,26 +182,27 @@ function gen() {
 	test $# -ge 6 || die 20 "too few arguments, $# given, at least 6 needed"
 	local define if_kw kind name in_kw # mandatory
 	local of_kw method_name operator pattern # optional
+	local src_line="${BASH_SOURCE[0]}:${BASH_LINENO[0]}"
 	define="$1"
 	if_kw="$2"
 	kind="$3"
 	local orig_args_cnt=$#
 	shift 3
-	[ "$if_kw" != if ] && die 21 "'if' keyword expected, '$if_kw' given"
+	[ "$if_kw" != if ] && die 21 "$src_line: 'if' keyword expected, '$if_kw' given"
 	case "$kind" in
-	fun|enum|struct|macro)
+	fun|enum|struct|macro|typedef)
 		name="$1"
 		shift
 	;;
 	method)
-		test $# -ge 5 || die 22 "too few arguments, $orig_args_cnt given, at least 8 needed"
+		test $# -ge 5 || die 22 "$src_line: too few arguments, $orig_args_cnt given, at least 8 needed"
 		method_name="$1"
 		of_kw="$2"
 		name="$3"
 		shift 3
-		[ "$of_kw" != of ] && die 23 "'of' keyword expected, '$of_kw' given"
+		[ "$of_kw" != of ] && die 23 "$src_line: 'of' keyword expected, '$of_kw' given"
 	;;
-	*) die 24 "unknown KIND ($kind) to look for" ;;
+	*) die 24 "$src_line: unknown KIND ($kind) to look for" ;;
 	esac
 	operator="$1"
 	case "$operator" in
@@ -194,10 +222,10 @@ function gen() {
 		in_kw=in
 		shift
 	;;
-	*) die 25 "unknown OPERATOR ($operator) to look for" ;;
+	*) die 25 "$src_line: unknown OPERATOR ($operator) to look for" ;;
 	esac
-	[ "$in_kw" != in ] && die 26 "'in' keyword expected, '$in_kw' given"
-	test $# -ge 1 || die 27 'too few arguments, at least one filename expected'
+	[ "$in_kw" != in ] && die 26 "$src_line: 'in' keyword expected, '$in_kw' given"
+	test $# -ge 1 || die 27 "$src_line: too few arguments, at least one filename expected"
 
 	local first_decl=
 	if [ "$kind" = method ]; then
